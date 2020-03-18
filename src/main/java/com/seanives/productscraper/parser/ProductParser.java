@@ -5,6 +5,7 @@ import com.seanives.productscraper.model.ProductModel;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,15 +19,23 @@ public class ProductParser {
   }
 
   public void getProducts(final Presenter presenter) {
-    return;
+    Document productsPage = getDocument(productsPageUrl);
+    List<ProductModel> productsList = parseProductsPage(productsPage);
+
+    presenter.parsingCompletedSuccesfully(productsList);
   }
 
   List<ProductModel> parseProductsPage(final Element productsPage) {
-    return null;
+    List<ProductModel> productList = new ArrayList<>();
+    for (Element product : productsPage.getAllElements()) {
+      productList.add(parseProduct(product));
+    }
+    return productList;
   }
 
   ProductModel parseProduct(final Element product) {
-    return null;
+    return new ProductModel(
+        getTitle(product), getKCals(product), getPricePerUnit(product), getDescription(product));
   }
 
   String getTitle(final Element product) {

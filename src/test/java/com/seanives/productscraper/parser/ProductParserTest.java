@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,6 +23,7 @@ public class ProductParserTest {
   static final String testProductUrl = "http://example.com/product-page.html";
 
   @Mock Presenter mockPresenter;
+  @Mock Document mockDocument;
   @Mock Element mockProductsPage;
   @Mock Elements mockProducts;
   @Mock Element mockProduct;
@@ -35,15 +37,24 @@ public class ProductParserTest {
   @Test
   @DisplayName("should get a list of parsed products")
   void getProducts() {
+    doReturn(mockDocument).when(productParser).getDocument(anyString());
+    List mockProductsList = mock(List.class);
+    doReturn(mockProductsList).when(productParser).parseProductsPage(any());
     productParser.getProducts(mockPresenter);
-    verify(mockPresenter, times(1)).parsingCompletedSuccesfully(any());
+    verify(productParser, times(1)).getDocument(testProductUrl);
+    verify(productParser, times(1)).parseProductsPage(mockDocument);
+    verify(mockPresenter, times(1)).parsingCompletedSuccesfully(mockProductsList);
   }
 
   @Test
   @DisplayName("should parse a page of products")
   void parseProductsPage() {
+    doReturn(mockProducts).when(mockProductsPage).getAllElements();
+    doReturn(Arrays.asList(mockProduct).iterator()).when(mockProducts).iterator();
     List<ProductModel> productList = productParser.parseProductsPage(mockProductsPage);
     assertThat(productList, is(notNullValue()));
+    assertThat(productList.size(), is(equalTo(1)));
+    verify(productParser, times(1)).parseProduct(mockProduct);
   }
 
   @Test
