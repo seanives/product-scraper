@@ -47,17 +47,40 @@ public class ProductParserTest {
     MockitoAnnotations.initMocks(this);
   }
 
-  @Test
-  @DisplayName("should get a list of parsed products")
-  void getProducts() throws IOException {
-    doReturn(mockDocument).when(productParser).getDocument(anyString());
-    doReturn(Arrays.asList(testProductModel)).when(productParser).parseProductsPage(any());
-    productParser.getProducts(mockPresenter);
-    ArgumentCaptor<List<ProductModel>> productListCaptor = ArgumentCaptor.forClass(List.class);
-    verify(mockPresenter, times(1)).parsingCompletedSuccesfully(productListCaptor.capture());
-    assertThat(productListCaptor.getValue(), is(notNullValue()));
-    assertThat(productListCaptor.getValue().size(), is(1));
-    assertThat(productListCaptor.getValue().get(0), is(equalTo(testProductModel)));
+  @Nested
+  @DisplayName("getProducts")
+  public class GetProductsTests {
+
+    @Test
+    @DisplayName("should get a list of parsed products")
+    void getProducts() throws IOException {
+      doReturn(mockDocument).when(productParser).getDocument(anyString());
+      doReturn(Arrays.asList(testProductModel)).when(productParser).parseProductsPage(any());
+      productParser.getProducts(mockPresenter);
+      ArgumentCaptor<List<ProductModel>> productListCaptor = ArgumentCaptor.forClass(List.class);
+      verify(mockPresenter, times(1)).parsingCompletedSuccesfully(productListCaptor.capture());
+      assertThat(productListCaptor.getValue(), is(notNullValue()));
+      assertThat(productListCaptor.getValue().size(), is(1));
+      assertThat(productListCaptor.getValue().get(0), is(equalTo(testProductModel)));
+    }
+
+    @Test
+    @DisplayName("should invoke the presenter if unable to parse the products page")
+    void getProductsCallsPresenterIfUnableToParseProducts() throws IOException {
+      doReturn(mockDocument).when(productParser).getDocument(anyString());
+      doThrow(new UnableToParseProductPageException("x")).when(productParser).parseProductsPage(any());
+      productParser.getProducts(mockPresenter);
+      verify(mockPresenter, times(1)).unableToParseProductPageFailure("Unable to parse the details on page: x");
+    }
+
+    @Test
+    @DisplayName("should invoke the presenter if unable to parse the products page")
+    void getProductsCallsPresenterIfUnableToParseProductDetails() throws IOException {
+      doReturn(mockDocument).when(productParser).getDocument(anyString());
+      doThrow(new UnableToParseProductDetailsException("x")).when(productParser).parseProductsPage(any());
+      productParser.getProducts(mockPresenter);
+      verify(mockPresenter, times(1)).unableToParseProductDetailsFailure("Unable to parse the details for product: x");
+    }
   }
 
   @Test
@@ -142,7 +165,7 @@ public class ProductParserTest {
                   UnableToParseProductPageException.class,
                   () -> productParser.parseProduct(mockProduct))
               .getMessage(),
-          is(equalTo("Cannot find product name and promotions on page")));
+          is(equalTo("Cannot find product pricing on page")));
     }
   }
 

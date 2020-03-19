@@ -1,6 +1,8 @@
 package com.seanives.productscraper.parser;
 
 import com.seanives.productscraper.Presenter;
+import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
+import com.seanives.productscraper.errors.parser.UnableToParseProductPageException;
 import com.seanives.productscraper.model.ProductModel;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -24,13 +26,22 @@ public class ProductParser {
   }
 
   public void getProducts(final Presenter presenter) throws IOException {
-    Document productsPage = getDocument(productsPageUrl);
-    List<ProductModel> productsList = parseProductsPage(productsPage);
+    try {
+      Document productsPage = getDocument(productsPageUrl);
+      List<ProductModel> productsList = parseProductsPage(productsPage);
 
-    presenter.parsingCompletedSuccesfully(productsList);
+      presenter.parsingCompletedSuccesfully(productsList);
+
+    } catch (UnableToParseProductPageException e) {
+      presenter.unableToParseProductPageFailure(
+          String.format("Unable to parse the details on page: %s", e.getMessage()));
+    } catch (UnableToParseProductDetailsException e) {
+      presenter.unableToParseProductDetailsFailure(
+          String.format("Unable to parse the details for product: %s", e.getMessage()));
+    }
   }
 
-  List<ProductModel> parseProductsPage(final Element productsPage) throws IOException {
+  List<ProductModel> parseProductsPage(final Element productsPage) throws IOException, UnableToParseProductPageException {
     Elements products = productsPage.select(".productLister .product");
     List<ProductModel> productList = new ArrayList<>();
     for (Element product : products) {
@@ -39,10 +50,13 @@ public class ProductParser {
     return productList;
   }
 
-  ProductModel parseProduct(final Element product) throws IOException {
+  ProductModel parseProduct(final Element product) throws IOException, UnableToParseProductPageException {
     Element productNameAndPromos =
         Optional.ofNullable(product.select(".productInfo .productNameAndPromotions a").first())
-            .get();
+            .orElseThrow(
+                () ->
+                    new UnableToParseProductPageException(
+                        "Cannot find product name and promotions on page"));
     String productTitle = getTitle(productNameAndPromos);
 
     String productDetailsPageUrl = productNameAndPromos.absUrl("href");
@@ -50,7 +64,10 @@ public class ProductParser {
     String description = getDescription(productDetails);
     Optional<Integer> kCals = getKCals(productDetails);
 
-    Element pricingDetails = Optional.of(product.select(".pricePerUnit").first()).get();
+    Element pricingDetails =
+        Optional.ofNullable(product.select(".pricePerUnit").first())
+            .orElseThrow(
+                () -> new UnableToParseProductPageException("Cannot find product pricing on page"));
     double pricePerUnit = getPricePerUnit(pricingDetails);
 
     return new ProductModel(productTitle, kCals, pricePerUnit, description);
@@ -69,28 +86,35 @@ public class ProductParser {
                     .map(Element::text)
                     .filter(content -> !"".equals(content.trim()))
                     .findFirst()
-                    .get(),
+                    .orElseThrow(
+                        () ->
+                            new UnableToParseProductDetailsException("Description has no content")),
             productTextElement ->
                 Optional.ofNullable(productTextElement.previousElementSibling())
                     .map(prev -> prev.text().equals("Description"))
                     .orElse(false))
         .stream()
         .findFirst()
-        .get();
+        .orElseThrow(() -> new UnableToParseProductDetailsException("Description cannot be found"));
   }
 
   Optional<Integer> getKCals(final Element productDetails) {
     return parseChildElements(
             productDetails,
             ".mainProductInfo #information.section h3 + *",
-            element ->
-                element.getElementsByTag("td").stream()
+            element -> {
+              try {
+                return element.getElementsByTag("td").stream()
                     .map(Element::text)
                     .filter(content -> content.endsWith("kcal"))
                     .map(
                         kcalText ->
                             Integer.parseUnsignedInt(kcalText.replaceAll("([0-9]+).*", "$1")))
-                    .findFirst(),
+                    .findFirst();
+              } catch (NumberFormatException e) {
+                throw new UnableToParseProductDetailsException("Error parsing kcals per 100g");
+              }
+            },
             productTextElement ->
                 Optional.ofNullable(productTextElement.previousElementSibling())
                     .map(prev -> prev.text().equals("Nutrition"))
@@ -101,12 +125,16 @@ public class ProductParser {
   }
 
   double getPricePerUnit(final Element pricingDetails) {
-    return pricingDetails.getAllElements().stream()
-        .map(Element::text)
-        .findFirst()
-        .map(priceText -> priceText.replaceAll("£(0|(?:[1-9][0-9]*))([.][0-9]+)?.*", "$1$2"))
-        .map(Double::parseDouble)
-        .get();
+    try {
+      return pricingDetails.getAllElements().stream()
+          .map(Element::text)
+          .findFirst()
+          .map(priceText -> priceText.replaceAll("£(0|(?:[1-9][0-9]*))([.][0-9]+)?.*", "$1$2"))
+          .map(Double::parseDouble)
+          .get();
+    } catch (NumberFormatException e) {
+      throw new UnableToParseProductDetailsException("Error parsing price per unit");
+    }
   }
 
   <T> List<T> parseChildElements(
