@@ -1,6 +1,7 @@
 package com.seanives.productscraper.parser;
 
 import com.seanives.productscraper.Presenter;
+import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
 import com.seanives.productscraper.model.ProductModel;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -18,7 +19,7 @@ import java.util.Optional;
 import static com.seanives.productscraper.parser.ProductParserFixtures.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -114,13 +115,42 @@ public class ProductParserTest {
     verify(productNameAndPromos, times(1)).text();
   }
 
-  @Test
-  @DisplayName("should return the price per unit")
-  void getPricePerUnit() {
-    Element pricingDetails = getTestElement(String.format(PRICE_PER_UNIT, TEST_PRODUCT_PRICE));
-    double price = productParser.getPricePerUnit(pricingDetails);
-    assertThat(price, is(equalTo(TEST_PRODUCT_PRICE)));
-    verify(pricingDetails, times(1)).getAllElements();
+  @Nested
+  @DisplayName("getPricePerUnit")
+  public class GetPricePerUnitTests {
+
+    @Test
+    @DisplayName("should return the price per unit), if present and valid")
+    void getPricePerUnit() {
+      Element pricingDetails = getTestElement(String.format(PRICE_PER_UNIT, TEST_PRODUCT_PRICE));
+      double price = productParser.getPricePerUnit(pricingDetails);
+      assertThat(price, is(equalTo(TEST_PRODUCT_PRICE)));
+      verify(pricingDetails, times(1)).getAllElements();
+    }
+
+    @Test
+    @DisplayName("should throw an exception if price per unit is missing")
+    void getPricePerUnitThrowsIfMissing() {
+      Element pricingDetails = getTestElement(String.format(PRICE_PER_UNIT, ""));
+      assertThat(
+          assertThrows(
+                  UnableToParseProductDetailsException.class,
+                  () -> productParser.getPricePerUnit(pricingDetails))
+              .getMessage(),
+          is(equalTo("Error parsing price per unit")));
+    }
+
+    @Test
+    @DisplayName("should throw an exception if price per unit is invalid")
+    void getPricePerUnitThrowsIfInvalid() {
+      Element pricingDetails = getTestElement(String.format(PRICE_PER_UNIT, "£xxx"));
+      assertThat(
+          assertThrows(
+                  UnableToParseProductDetailsException.class,
+                  () -> productParser.getPricePerUnit(pricingDetails))
+              .getMessage(),
+          is(equalTo("Error parsing price per unit")));
+    }
   }
 
   @Nested
@@ -130,7 +160,8 @@ public class ProductParserTest {
     Element targetElement;
     Element infoSectionHeading;
 
-    private void setUp(final String targetElementText, final String heading, final String targetElementFixture) {
+    private void setUp(
+        final String targetElementText, final String heading, final String targetElementFixture) {
       Elements selected = mock(Elements.class);
       doReturn(selected).when(mockProduct).select(anyString());
       infoSectionHeading = getTestElement(heading);
@@ -140,32 +171,83 @@ public class ProductParserTest {
       doReturn(els.stream()).when(selected).stream();
     }
 
-    @Test
-    @DisplayName("should return the description")
-    void getDescription() {
-      setUp(TEST_PRODUCT_DESCRIPTION, DESCRIPTION_HEADING, PRODUCT_TEXT);
-      String description =
-              productParser.getDescription(mockProduct);
-      assertThat(description, is(equalTo(TEST_PRODUCT_DESCRIPTION)));
-      verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
-      verify(targetElement, times(1)).previousElementSibling();
-      verify(infoSectionHeading, times(1)).text();
-      verify(targetElement, times(1)).getElementsByTag("p");
+    @Nested
+    @DisplayName("getDescription")
+    public class GetDescriptionTests {
+      @Test
+      @DisplayName("should return the description, if present and valid")
+      void getDescription() {
+        setUp(TEST_PRODUCT_DESCRIPTION, DESCRIPTION_HEADING, PRODUCT_TEXT);
+        String description = productParser.getDescription(mockProduct);
+        assertThat(description, is(equalTo(TEST_PRODUCT_DESCRIPTION)));
+        verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
+        verify(targetElement, times(1)).previousElementSibling();
+        verify(infoSectionHeading, times(1)).text();
+        verify(targetElement, times(1)).getElementsByTag("p");
+      }
+
+      @Test
+      @DisplayName("should throw an exception if the description is blank")
+      void getDescriptionThrowsWhenNoContent() {
+        setUp("", DESCRIPTION_HEADING, "<div/>");
+        assertThat(
+            assertThrows(
+                    UnableToParseProductDetailsException.class,
+                    () -> productParser.getDescription(mockProduct))
+                .getMessage(),
+            is(equalTo("Description has no content")));
+      }
+
+      @Test
+      @DisplayName("should throw an exception if the description is missing")
+      void getDescriptionThrowsWhenNotFound() {
+        setUp("", "<h3>Not a Description<h3/>", "<div/>");
+        assertThat(
+            assertThrows(
+                    UnableToParseProductDetailsException.class,
+                    () -> productParser.getDescription(mockProduct))
+                .getMessage(),
+            is(equalTo("Description cannot be found")));
+      }
     }
 
-    @Test
-    @DisplayName("should return kcals per 100g, if present and valid")
-    void getKCals() {
-      String testKcalsText = String.format("%dkcal", TEST_PRODUCT_KCALS);
-      setUp(testKcalsText, NUTRITION_HEADING, NUTRITION_TABLE);
-      Optional<Integer> kcals =
-              productParser.getKCals(mockProduct);
-      assertTrue(kcals.isPresent());
-      assertThat(kcals.get(), is(equalTo(TEST_PRODUCT_KCALS)));
-      verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
-      verify(targetElement, times(1)).previousElementSibling();
-      verify(infoSectionHeading, times(1)).text();
-      verify(targetElement, times(1)).getElementsByTag("td");
+    @Nested
+    @DisplayName("getKCals")
+    public class GetKCalsTests {
+
+      @Test
+      @DisplayName("should return kcals per 100g, if present and valid")
+      void getKCals() {
+        String testKcalsText = String.format("%dkcal", TEST_PRODUCT_KCALS);
+        setUp(testKcalsText, NUTRITION_HEADING, NUTRITION_TABLE);
+        Optional<Integer> kcals = productParser.getKCals(mockProduct);
+        assertTrue(kcals.isPresent());
+        assertThat(kcals.get(), is(equalTo(TEST_PRODUCT_KCALS)));
+        verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
+        verify(targetElement, times(1)).previousElementSibling();
+        verify(infoSectionHeading, times(1)).text();
+        verify(targetElement, times(1)).getElementsByTag("td");
+      }
+
+      @Test
+      @DisplayName("should throw an exception if kcals per 100g is present, but is invalid")
+      void getKCalsThrowsWhenInvalid() {
+        setUp("xxxkcal", NUTRITION_HEADING, NUTRITION_TABLE);
+        assertThat(
+            assertThrows(
+                    UnableToParseProductDetailsException.class,
+                    () -> productParser.getKCals(mockProduct))
+                .getMessage(),
+            is(equalTo("Error parsing kcals per 100g")));
+      }
+
+      @Test
+      @DisplayName("should return an empty optional if the kcals per 100g is missing")
+      void getKCalsReturnsEmptyWhenNotFound() {
+        setUp("", "<h3>Not Nutrition</h3>", "<div/>");
+        Optional<Integer> kcals = productParser.getKCals(mockProduct);
+        assertFalse(kcals.isPresent());
+      }
     }
   }
 
