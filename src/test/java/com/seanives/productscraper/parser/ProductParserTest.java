@@ -68,18 +68,18 @@ public class ProductParserTest {
     @DisplayName("should invoke the presenter if unable to parse the products page")
     void getProductsCallsPresenterIfUnableToParseProducts() throws IOException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());
-      doThrow(new UnableToParseProductPageException("x")).when(productParser).parseProductsPage(any());
+      doThrow(new UnableToParseProductPageException("x", "y")).when(productParser).parseProductsPage(any());
       productParser.getProducts(mockPresenter);
-      verify(mockPresenter, times(1)).unableToParseProductPageFailure("Unable to parse the details on page: x");
+      verify(mockPresenter, times(1)).unableToParseProductPageFailure("Unable to parse the details on page 'y': x");
     }
 
     @Test
     @DisplayName("should invoke the presenter if unable to parse the products page")
     void getProductsCallsPresenterIfUnableToParseProductDetails() throws IOException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());
-      doThrow(new UnableToParseProductDetailsException("x")).when(productParser).parseProductsPage(any());
+      doThrow(new UnableToParseProductDetailsException("x", "y", "z")).when(productParser).parseProductsPage(any());
       productParser.getProducts(mockPresenter);
-      verify(mockPresenter, times(1)).unableToParseProductDetailsFailure("Unable to parse the details for product: x");
+      verify(mockPresenter, times(1)).unableToParseProductDetailsFailure("Unable to parse the details for product 'z' on page 'y': x");
     }
   }
 
@@ -113,9 +113,9 @@ public class ProductParserTest {
       doReturn(testProductDetailsUrl).when(productNameAndPromos).absUrl(anyString());
       doReturn(mockDocument).when(productParser).getDocument(anyString());
       doReturn(TEST_PRODUCT_TITLE).when(productParser).getTitle(any());
-      doReturn(TEST_PRODUCT_PRICE).when(productParser).getPricePerUnit(any());
-      doReturn(TEST_PRODUCT_DESCRIPTION).when(productParser).getDescription(any());
-      doReturn(Optional.of(TEST_PRODUCT_KCALS)).when(productParser).getKCals(any());
+      doReturn(TEST_PRODUCT_PRICE).when(productParser).getPricePerUnit(anyString(), anyString(), any());
+      doReturn(TEST_PRODUCT_DESCRIPTION).when(productParser).getDescription(anyString(), anyString(), any());
+      doReturn(Optional.of(TEST_PRODUCT_KCALS)).when(productParser).getKCals(anyString(), anyString(), any());
     }
 
     @Test
@@ -133,9 +133,9 @@ public class ProductParserTest {
       verify(productParser, times(1)).getDocument(testProductDetailsUrl);
 
       verify(productParser, times(1)).getTitle(any());
-      verify(productParser, times(1)).getPricePerUnit(any());
-      verify(productParser, times(1)).getDescription(any());
-      verify(productParser, times(1)).getKCals(any());
+      verify(productParser, times(1)).getPricePerUnit(anyString(), anyString(), any());
+      verify(productParser, times(1)).getDescription(anyString(), anyString(), any());
+      verify(productParser, times(1)).getKCals(anyString(), anyString(), any());
     }
 
     @Test
@@ -187,7 +187,7 @@ public class ProductParserTest {
     @DisplayName("should return the price per unit), if present and valid")
     void getPricePerUnit() {
       Element pricingDetails = getTestElement(String.format(PRICE_PER_UNIT, TEST_PRODUCT_PRICE));
-      double price = productParser.getPricePerUnit(pricingDetails);
+      double price = productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails);
       assertThat(price, is(equalTo(TEST_PRODUCT_PRICE)));
       verify(pricingDetails, times(1)).getAllElements();
     }
@@ -199,7 +199,7 @@ public class ProductParserTest {
       assertThat(
           assertThrows(
                   UnableToParseProductDetailsException.class,
-                  () -> productParser.getPricePerUnit(pricingDetails))
+                  () -> productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails))
               .getMessage(),
           is(equalTo("Error parsing price per unit")));
     }
@@ -211,7 +211,7 @@ public class ProductParserTest {
       assertThat(
           assertThrows(
                   UnableToParseProductDetailsException.class,
-                  () -> productParser.getPricePerUnit(pricingDetails))
+                  () -> productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails))
               .getMessage(),
           is(equalTo("Error parsing price per unit")));
     }
@@ -242,7 +242,7 @@ public class ProductParserTest {
       @DisplayName("should return the description, if present and valid")
       void getDescription() {
         setUp(TEST_PRODUCT_DESCRIPTION, DESCRIPTION_HEADING, PRODUCT_TEXT);
-        String description = productParser.getDescription(mockProduct);
+        String description = productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
         assertThat(description, is(equalTo(TEST_PRODUCT_DESCRIPTION)));
         verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
         verify(targetElement, times(1)).previousElementSibling();
@@ -257,7 +257,7 @@ public class ProductParserTest {
         assertThat(
             assertThrows(
                     UnableToParseProductDetailsException.class,
-                    () -> productParser.getDescription(mockProduct))
+                    () -> productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
                 .getMessage(),
             is(equalTo("Description has no content")));
       }
@@ -269,7 +269,7 @@ public class ProductParserTest {
         assertThat(
             assertThrows(
                     UnableToParseProductDetailsException.class,
-                    () -> productParser.getDescription(mockProduct))
+                    () -> productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
                 .getMessage(),
             is(equalTo("Description cannot be found")));
       }
@@ -284,7 +284,7 @@ public class ProductParserTest {
       void getKCals() {
         String testKcalsText = String.format("%dkcal", TEST_PRODUCT_KCALS);
         setUp(testKcalsText, NUTRITION_HEADING, NUTRITION_TABLE);
-        Optional<Integer> kcals = productParser.getKCals(mockProduct);
+        Optional<Integer> kcals = productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
         assertTrue(kcals.isPresent());
         assertThat(kcals.get(), is(equalTo(TEST_PRODUCT_KCALS)));
         verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
@@ -300,7 +300,7 @@ public class ProductParserTest {
         assertThat(
             assertThrows(
                     UnableToParseProductDetailsException.class,
-                    () -> productParser.getKCals(mockProduct))
+                    () -> productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
                 .getMessage(),
             is(equalTo("Error parsing kcals per 100g")));
       }
@@ -309,7 +309,7 @@ public class ProductParserTest {
       @DisplayName("should return an empty optional if the kcals per 100g is missing")
       void getKCalsReturnsEmptyWhenNotFound() {
         setUp("", "<h3>Not Nutrition</h3>", "<div/>");
-        Optional<Integer> kcals = productParser.getKCals(mockProduct);
+        Optional<Integer> kcals = productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
         assertFalse(kcals.isPresent());
       }
     }

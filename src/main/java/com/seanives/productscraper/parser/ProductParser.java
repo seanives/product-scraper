@@ -41,7 +41,8 @@ public class ProductParser {
     }
   }
 
-  List<ProductModel> parseProductsPage(final Element productsPage) throws IOException, UnableToParseProductPageException {
+  List<ProductModel> parseProductsPage(final Element productsPage)
+      throws IOException, UnableToParseProductPageException {
     Elements products = productsPage.select(".productLister .product");
     List<ProductModel> productList = new ArrayList<>();
     for (Element product : products) {
@@ -50,25 +51,28 @@ public class ProductParser {
     return productList;
   }
 
-  ProductModel parseProduct(final Element product) throws IOException, UnableToParseProductPageException {
+  ProductModel parseProduct(final Element product)
+      throws IOException, UnableToParseProductPageException {
     Element productNameAndPromos =
         Optional.ofNullable(product.select(".productInfo .productNameAndPromotions a").first())
             .orElseThrow(
                 () ->
                     new UnableToParseProductPageException(
-                        "Cannot find product name and promotions on page"));
+                        "Cannot find product name and promotions on page", productsPageUrl));
     String productTitle = getTitle(productNameAndPromos);
 
     String productDetailsPageUrl = productNameAndPromos.absUrl("href");
     Document productDetails = getDocument(productDetailsPageUrl);
-    String description = getDescription(productDetails);
-    Optional<Integer> kCals = getKCals(productDetails);
+    String description = getDescription(productDetailsPageUrl, productTitle, productDetails);
+    Optional<Integer> kCals = getKCals(productDetailsPageUrl, productTitle, productDetails);
 
     Element pricingDetails =
         Optional.ofNullable(product.select(".pricePerUnit").first())
             .orElseThrow(
-                () -> new UnableToParseProductPageException("Cannot find product pricing on page"));
-    double pricePerUnit = getPricePerUnit(pricingDetails);
+                () ->
+                    new UnableToParseProductPageException(
+                        "Cannot find product pricing on page", productsPageUrl));
+    double pricePerUnit = getPricePerUnit(productDetailsPageUrl, productTitle, pricingDetails);
 
     return new ProductModel(productTitle, kCals, pricePerUnit, description);
   }
@@ -77,7 +81,7 @@ public class ProductParser {
     return productNameAndPromos.text();
   }
 
-  String getDescription(final Element productDetails) {
+  String getDescription(final String pageUrl, final String productTitle, final Element productDetails) {
     return parseChildElements(
             productDetails,
             ".mainProductInfo #information.section h3 + *",
@@ -88,17 +92,17 @@ public class ProductParser {
                     .findFirst()
                     .orElseThrow(
                         () ->
-                            new UnableToParseProductDetailsException("Description has no content")),
+                            new UnableToParseProductDetailsException("Description has no content", pageUrl, productTitle)),
             productTextElement ->
                 Optional.ofNullable(productTextElement.previousElementSibling())
                     .map(prev -> prev.text().equals("Description"))
                     .orElse(false))
         .stream()
         .findFirst()
-        .orElseThrow(() -> new UnableToParseProductDetailsException("Description cannot be found"));
+        .orElseThrow(() -> new UnableToParseProductDetailsException("Description cannot be found", pageUrl, productTitle));
   }
 
-  Optional<Integer> getKCals(final Element productDetails) {
+  Optional<Integer> getKCals(final String pageUrl, final String productTitle, final Element productDetails) {
     return parseChildElements(
             productDetails,
             ".mainProductInfo #information.section h3 + *",
@@ -112,7 +116,7 @@ public class ProductParser {
                             Integer.parseUnsignedInt(kcalText.replaceAll("([0-9]+).*", "$1")))
                     .findFirst();
               } catch (NumberFormatException e) {
-                throw new UnableToParseProductDetailsException("Error parsing kcals per 100g");
+                throw new UnableToParseProductDetailsException("Error parsing kcals per 100g", pageUrl, productTitle);
               }
             },
             productTextElement ->
@@ -124,7 +128,7 @@ public class ProductParser {
         .orElse(Optional.empty());
   }
 
-  double getPricePerUnit(final Element pricingDetails) {
+  double getPricePerUnit(final String pageUrl, final String productTitle, final Element pricingDetails) {
     try {
       return pricingDetails.getAllElements().stream()
           .map(Element::text)
@@ -133,7 +137,7 @@ public class ProductParser {
           .map(Double::parseDouble)
           .get();
     } catch (NumberFormatException e) {
-      throw new UnableToParseProductDetailsException("Error parsing price per unit");
+      throw new UnableToParseProductDetailsException("Error parsing price per unit", pageUrl, productTitle);
     }
   }
 
