@@ -2,6 +2,7 @@ package com.seanives.productscraper.parser;
 
 import com.seanives.productscraper.Presenter;
 import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
+import com.seanives.productscraper.errors.parser.UnableToParseProductPageException;
 import com.seanives.productscraper.model.ProductModel;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -73,36 +74,76 @@ public class ProductParserTest {
     verify(mockProductsPage, times(1)).select(".productLister .product");
   }
 
-  @Test
-  @DisplayName("should parse a product")
-  void parseProduct() throws IOException {
+  @Nested
+  @DisplayName("parseProduct")
+  public class ParseProductTests {
+
     Element productNameAndPromos = mock(Element.class);
-    Elements products = mock(Elements.class);
-    doReturn(productNameAndPromos).when(products).first();
-    Element pricingDetails = mock(Element.class);
-    Elements pricing = mock(Elements.class);
-    doReturn(pricingDetails).when(pricing).first();
-    doReturn(products, pricing).when(mockProduct).select(anyString());
-    doReturn(testProductDetailsUrl).when(productNameAndPromos).absUrl(anyString());
-    doReturn(mockDocument).when(productParser).getDocument(anyString());
 
-    doReturn(TEST_PRODUCT_TITLE).when(productParser).getTitle(any());
-    doReturn(TEST_PRODUCT_PRICE).when(productParser).getPricePerUnit(any());
-    doReturn(TEST_PRODUCT_DESCRIPTION).when(productParser).getDescription(any());
-    doReturn(Optional.of(TEST_PRODUCT_KCALS)).when(productParser).getKCals(any());
+    void setUp(Element pricingDetails) throws IOException {
+      Elements pricing = mock(Elements.class);
+      Elements products = mock(Elements.class);
+      doReturn(productNameAndPromos).when(products).first();
 
-    ProductModel productModel = productParser.parseProduct(mockProduct);
-    assertThat(productModel, is(notNullValue()));
-    assertThat(productModel, is(equalTo(testProductModel)));
-    verify(mockProduct, times(1)).select(".productInfo .productNameAndPromotions a");
-    verify(mockProduct, times(1)).select(".pricePerUnit");
-    verify(productNameAndPromos, times(1)).absUrl("href");
-    verify(productParser, times(1)).getDocument(testProductDetailsUrl);
+      doReturn(pricingDetails).when(pricing).first();
+      doReturn(products, pricing).when(mockProduct).select(anyString());
+      doReturn(testProductDetailsUrl).when(productNameAndPromos).absUrl(anyString());
+      doReturn(mockDocument).when(productParser).getDocument(anyString());
+      doReturn(TEST_PRODUCT_TITLE).when(productParser).getTitle(any());
+      doReturn(TEST_PRODUCT_PRICE).when(productParser).getPricePerUnit(any());
+      doReturn(TEST_PRODUCT_DESCRIPTION).when(productParser).getDescription(any());
+      doReturn(Optional.of(TEST_PRODUCT_KCALS)).when(productParser).getKCals(any());
+    }
 
-    verify(productParser, times(1)).getTitle(any());
-    verify(productParser, times(1)).getPricePerUnit(any());
-    verify(productParser, times(1)).getDescription(any());
-    verify(productParser, times(1)).getKCals(any());
+    @Test
+    @DisplayName("should parse a product")
+    void parseProduct() throws IOException {
+      Element pricingDetails = mock(Element.class);
+      setUp(pricingDetails);
+
+      ProductModel productModel = productParser.parseProduct(mockProduct);
+      assertThat(productModel, is(notNullValue()));
+      assertThat(productModel, is(equalTo(testProductModel)));
+      verify(mockProduct, times(1)).select(".productInfo .productNameAndPromotions a");
+      verify(mockProduct, times(1)).select(".pricePerUnit");
+      verify(productNameAndPromos, times(1)).absUrl("href");
+      verify(productParser, times(1)).getDocument(testProductDetailsUrl);
+
+      verify(productParser, times(1)).getTitle(any());
+      verify(productParser, times(1)).getPricePerUnit(any());
+      verify(productParser, times(1)).getDescription(any());
+      verify(productParser, times(1)).getKCals(any());
+    }
+
+    @Test
+    @DisplayName("should throw an exception if product name and promotions is missing on page")
+    void parseProductThrowsIfProductNameAndPromosMissing() throws IOException {
+      Element pricingDetails = mock(Element.class);
+      setUp(pricingDetails);
+
+      Elements products = mock(Elements.class);
+      doReturn(null).when(products).first();
+      doReturn(products).when(mockProduct).select(anyString());
+      assertThat(
+          assertThrows(
+                  UnableToParseProductPageException.class,
+                  () -> productParser.parseProduct(mockProduct))
+              .getMessage(),
+          is(equalTo("Cannot find product name and promotions on page")));
+    }
+
+    @Test
+    @DisplayName("should throw an exception if pricing is missing on page")
+    void parseProductThrowsIfProductPricingMissing() throws IOException {
+      setUp(null);
+
+      assertThat(
+          assertThrows(
+                  UnableToParseProductPageException.class,
+                  () -> productParser.parseProduct(mockProduct))
+              .getMessage(),
+          is(equalTo("Cannot find product name and promotions on page")));
+    }
   }
 
   @Test
