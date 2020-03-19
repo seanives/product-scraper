@@ -34,10 +34,13 @@ public class ProductParser {
 
     } catch (UnableToParseProductPageException e) {
       presenter.unableToParseProductPageFailure(
-          String.format("Unable to parse the details on page: %s", e.getMessage()));
+              String.format(
+                      "Unable to parse the details on page '%s': %s", e.getUrl(), e.getMessage()));
     } catch (UnableToParseProductDetailsException e) {
       presenter.unableToParseProductDetailsFailure(
-          String.format("Unable to parse the details for product: %s", e.getMessage()));
+              String.format(
+                      "Unable to parse the details for product '%s' on page '%s': %s",
+                      e.getProductTitle(), e.getUrl(), e.getMessage()));
     }
   }
 
