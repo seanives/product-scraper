@@ -14,7 +14,9 @@ public class BasicJsonProductReport implements Report {
   }
 
   @Override
-  public void render() {}
+  public void render() {
+    jsonReportRenderer.getRendered(productResultsModel);
+  }
 
   @Override
   public String toString() {
