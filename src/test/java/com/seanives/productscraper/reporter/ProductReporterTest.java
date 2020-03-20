@@ -13,6 +13,7 @@ import static org.hamcrest.Matchers.*;
 public class ProductReporterTest {
 
   @Mock ProductResultsModel productResultsModel;
+  @Mock Report report;
 
   public ProductReporterTest() {
     MockitoAnnotations.initMocks(this);
@@ -21,8 +22,8 @@ public class ProductReporterTest {
   @Test
   @DisplayName("should generate a valid report")
   void generateReport() {
-    ProductReporter reporter = new ProductReporter(productResultsModel);
-    Report report = reporter.generateReport();
-    assertThat(report, is(notNullValue()));
+    ProductReporter reporter = new ProductReporter(productResultsModel, report);
+    Report generatedReport = reporter.generateReport();
+    assertThat(generatedReport, is(notNullValue()));
   }
 }
