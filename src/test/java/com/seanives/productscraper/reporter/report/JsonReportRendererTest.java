@@ -117,5 +117,7 @@ public class JsonReportRendererTest {
     Map<String, Object> renderedReport = renderer.getRendered(testModelToRender);
     String json = renderer.getJsonString(renderedReport);
     assertThat(json, is(notNullValue()));
+    assertThat(json.contains("\"a\":[{\"aa\":\"aa\"}]"), is(true));
+    assertThat(json.contains("\"b\":{\"bb\":\"bb\"}"), is(true));
   }
 }
