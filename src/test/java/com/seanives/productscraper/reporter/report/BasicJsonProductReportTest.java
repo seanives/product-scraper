@@ -8,7 +8,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class BasicJsonProductReportTest {
@@ -16,16 +16,24 @@ public class BasicJsonProductReportTest {
   @Mock ProductResultsModel productResultsModel;
   @Mock JsonReportRenderer<ProductResultsModel> reportRenderer;
 
+  BasicJsonProductReport report;
+
   public BasicJsonProductReportTest() {
     MockitoAnnotations.initMocks(this);
+    report = new BasicJsonProductReport(productResultsModel, reportRenderer);
   }
 
   @Test
   @DisplayName("should render a valid report")
   void render() {
-    BasicJsonProductReport report = new BasicJsonProductReport(productResultsModel, reportRenderer);
     report.render();
-    verify(reportRenderer, atLeastOnce()).getRendered(productResultsModel);
-    assertThat(report, is(notNullValue()));
+    verify(reportRenderer, times(1)).getRendered(productResultsModel);
+  }
+
+  @Test
+  @DisplayName("should convert the rendered report to a string")
+  void convertToString() {
+    String result = report.toString();
+    assertThat(result, is(notNullValue()));
   }
 }
