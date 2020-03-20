@@ -1,15 +1,15 @@
 package com.seanives.productscraper.reporter.report;
 
-import java.util.Collections;
+import org.json.JSONObject;
 import java.util.Map;
 
 public class JsonReportRenderer<T> {
 
   public String getJsonString(Map<String, Object> renderedReport) {
-    return "";
+    return new JSONObject(renderedReport).toString();
   }
 
   public Map<String, Object> getRendered(T modelToRender) {
-    return Collections.emptyMap();
+    return new JSONObject(modelToRender).toMap();
   }
 }
