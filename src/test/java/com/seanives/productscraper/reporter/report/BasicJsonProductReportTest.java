@@ -14,8 +14,7 @@ import static org.mockito.Mockito.verify;
 public class BasicJsonProductReportTest {
 
   @Mock ProductResultsModel productResultsModel;
-
-  @Mock JsonReportRenderer reportRenderer;
+  @Mock JsonReportRenderer<ProductResultsModel> reportRenderer;
 
   public BasicJsonProductReportTest() {
     MockitoAnnotations.initMocks(this);
@@ -26,7 +25,7 @@ public class BasicJsonProductReportTest {
   void render() {
     BasicJsonProductReport report = new BasicJsonProductReport(productResultsModel, reportRenderer);
     report.render();
-    verify(reportRenderer, atLeastOnce()).getJsonString();
+    verify(reportRenderer, atLeastOnce()).getRendered(productResultsModel);
     assertThat(report, is(notNullValue()));
   }
 }

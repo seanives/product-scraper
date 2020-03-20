@@ -1,8 +1,14 @@
 package com.seanives.productscraper.reporter.report;
 
-public class JsonReportRenderer {
+import java.util.Map;
 
-  public String getJsonString() {
+public class JsonReportRenderer<T> {
+
+  public String getJsonString(Map<String, Object> renderedReport) {
+    return null;
+  }
+
+  public Map<String, Object> getRendered(T modelToRender) {
     return null;
   }
 }
