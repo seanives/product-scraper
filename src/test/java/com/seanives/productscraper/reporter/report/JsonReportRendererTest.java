@@ -1,6 +1,5 @@
 package com.seanives.productscraper.reporter.report;
 
-import org.json.JSONObject;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
@@ -117,7 +116,7 @@ public class JsonReportRendererTest {
     Map<String, Object> renderedReport = renderer.getRendered(testModelToRender);
     String json = renderer.getJsonString(renderedReport);
     assertThat(json, is(notNullValue()));
-    assertThat(json.contains("\"a\":[{\"aa\":\"aa\"}]"), is(true));
-    assertThat(json.contains("\"b\":{\"bb\":\"bb\"}"), is(true));
+    assertThat(json.contains("\"a\": [{\"aa\": \"aa\"}]"), is(true));
+    assertThat(json.contains("\"b\": {\"bb\": \"bb\"}"), is(true));
   }
 }

@@ -6,7 +6,7 @@ import java.util.Map;
 public class JsonReportRenderer<T> {
 
   public String getJsonString(Map<String, Object> renderedReport) {
-    return new JSONObject(renderedReport).toString();
+    return new JSONObject(renderedReport).toString(2);
   }
 
   public Map<String, Object> getRendered(T modelToRender) {
