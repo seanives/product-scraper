@@ -1,9 +1,11 @@
 package com.seanives.productscraper.parser;
 
 import com.seanives.productscraper.Presenter;
+import com.seanives.productscraper.errors.parser.UnableToGetConnectionException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductPageException;
 import com.seanives.productscraper.model.ProductModel;
+import org.jsoup.Connection;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -53,7 +55,7 @@ public class ProductParserTest {
 
     @Test
     @DisplayName("should get a list of parsed products")
-    void getProducts() throws IOException {
+    void getProducts() throws UnableToGetConnectionException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());
       doReturn(Arrays.asList(testProductModel)).when(productParser).parseProductsPage(any());
       productParser.getProducts(mockPresenter);
@@ -66,26 +68,34 @@ public class ProductParserTest {
 
     @Test
     @DisplayName("should invoke the presenter if unable to parse the products page")
-    void getProductsCallsPresenterIfUnableToParseProducts() throws IOException {
+    void getProductsCallsPresenterIfUnableToParseProducts() throws UnableToGetConnectionException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());
-      doThrow(new UnableToParseProductPageException("x", "y")).when(productParser).parseProductsPage(any());
+      doThrow(new UnableToParseProductPageException("x", "y"))
+          .when(productParser)
+          .parseProductsPage(any());
       productParser.getProducts(mockPresenter);
-      verify(mockPresenter, times(1)).unableToParseProductPageFailure("Unable to parse the details on page 'y': x");
+      verify(mockPresenter, times(1))
+          .unableToParseProductPageFailure("Unable to parse the details on page 'y': x");
     }
 
     @Test
     @DisplayName("should invoke the presenter if unable to parse the products page")
-    void getProductsCallsPresenterIfUnableToParseProductDetails() throws IOException {
+    void getProductsCallsPresenterIfUnableToParseProductDetails()
+        throws UnableToGetConnectionException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());
-      doThrow(new UnableToParseProductDetailsException("x", "y", "z")).when(productParser).parseProductsPage(any());
+      doThrow(new UnableToParseProductDetailsException("x", "y", "z"))
+          .when(productParser)
+          .parseProductsPage(any());
       productParser.getProducts(mockPresenter);
-      verify(mockPresenter, times(1)).unableToParseProductDetailsFailure("Unable to parse the details for product 'z' on page 'y': x");
+      verify(mockPresenter, times(1))
+          .unableToParseProductDetailsFailure(
+              "Unable to parse the details for product 'z' on page 'y': x");
     }
   }
 
   @Test
   @DisplayName("should parse a page of products")
-  void parseProductsPage() throws IOException {
+  void parseProductsPage() throws UnableToGetConnectionException {
     doReturn(mockProducts).when(mockProductsPage).select(anyString());
     doReturn(Arrays.asList(mockProduct).iterator()).when(mockProducts).iterator();
     doReturn(testProductModel).when(productParser).parseProduct(any());
@@ -103,7 +113,7 @@ public class ProductParserTest {
 
     Element productNameAndPromos = mock(Element.class);
 
-    void setUp(Element pricingDetails) throws IOException {
+    void setUp(Element pricingDetails) throws UnableToGetConnectionException {
       Elements pricing = mock(Elements.class);
       Elements products = mock(Elements.class);
       doReturn(productNameAndPromos).when(products).first();
@@ -113,14 +123,20 @@ public class ProductParserTest {
       doReturn(testProductDetailsUrl).when(productNameAndPromos).absUrl(anyString());
       doReturn(mockDocument).when(productParser).getDocument(anyString());
       doReturn(TEST_PRODUCT_TITLE).when(productParser).getTitle(any());
-      doReturn(TEST_PRODUCT_PRICE).when(productParser).getPricePerUnit(anyString(), anyString(), any());
-      doReturn(TEST_PRODUCT_DESCRIPTION).when(productParser).getDescription(anyString(), anyString(), any());
-      doReturn(Optional.of(TEST_PRODUCT_KCALS)).when(productParser).getKCals(anyString(), anyString(), any());
+      doReturn(TEST_PRODUCT_PRICE)
+          .when(productParser)
+          .getPricePerUnit(anyString(), anyString(), any());
+      doReturn(TEST_PRODUCT_DESCRIPTION)
+          .when(productParser)
+          .getDescription(anyString(), anyString(), any());
+      doReturn(Optional.of(TEST_PRODUCT_KCALS))
+          .when(productParser)
+          .getKCals(anyString(), anyString(), any());
     }
 
     @Test
     @DisplayName("should parse a product")
-    void parseProduct() throws IOException {
+    void parseProduct() throws UnableToGetConnectionException {
       Element pricingDetails = mock(Element.class);
       setUp(pricingDetails);
 
@@ -140,7 +156,7 @@ public class ProductParserTest {
 
     @Test
     @DisplayName("should throw an exception if product name and promotions is missing on page")
-    void parseProductThrowsIfProductNameAndPromosMissing() throws IOException {
+    void parseProductThrowsIfProductNameAndPromosMissing() throws UnableToGetConnectionException {
       Element pricingDetails = mock(Element.class);
       setUp(pricingDetails);
 
@@ -157,7 +173,7 @@ public class ProductParserTest {
 
     @Test
     @DisplayName("should throw an exception if pricing is missing on page")
-    void parseProductThrowsIfProductPricingMissing() throws IOException {
+    void parseProductThrowsIfProductPricingMissing() throws UnableToGetConnectionException {
       setUp(null);
 
       assertThat(
@@ -187,7 +203,8 @@ public class ProductParserTest {
     @DisplayName("should return the price per unit), if present and valid")
     void getPricePerUnit() {
       Element pricingDetails = getTestElement(String.format(PRICE_PER_UNIT, TEST_PRODUCT_PRICE));
-      double price = productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails);
+      double price =
+          productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails);
       assertThat(price, is(equalTo(TEST_PRODUCT_PRICE)));
       verify(pricingDetails, times(1)).getAllElements();
     }
@@ -199,7 +216,9 @@ public class ProductParserTest {
       assertThat(
           assertThrows(
                   UnableToParseProductDetailsException.class,
-                  () -> productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails))
+                  () ->
+                      productParser.getPricePerUnit(
+                          testProductUrl, TEST_PRODUCT_TITLE, pricingDetails))
               .getMessage(),
           is(equalTo("Error parsing price per unit")));
     }
@@ -211,7 +230,9 @@ public class ProductParserTest {
       assertThat(
           assertThrows(
                   UnableToParseProductDetailsException.class,
-                  () -> productParser.getPricePerUnit(testProductUrl, TEST_PRODUCT_TITLE, pricingDetails))
+                  () ->
+                      productParser.getPricePerUnit(
+                          testProductUrl, TEST_PRODUCT_TITLE, pricingDetails))
               .getMessage(),
           is(equalTo("Error parsing price per unit")));
     }
@@ -242,7 +263,8 @@ public class ProductParserTest {
       @DisplayName("should return the description, if present and valid")
       void getDescription() {
         setUp(TEST_PRODUCT_DESCRIPTION, DESCRIPTION_HEADING, PRODUCT_TEXT);
-        String description = productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
+        String description =
+            productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
         assertThat(description, is(equalTo(TEST_PRODUCT_DESCRIPTION)));
         verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
         verify(targetElement, times(1)).previousElementSibling();
@@ -257,7 +279,9 @@ public class ProductParserTest {
         assertThat(
             assertThrows(
                     UnableToParseProductDetailsException.class,
-                    () -> productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
+                    () ->
+                        productParser.getDescription(
+                            testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
                 .getMessage(),
             is(equalTo("Description has no content")));
       }
@@ -269,7 +293,9 @@ public class ProductParserTest {
         assertThat(
             assertThrows(
                     UnableToParseProductDetailsException.class,
-                    () -> productParser.getDescription(testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
+                    () ->
+                        productParser.getDescription(
+                            testProductUrl, TEST_PRODUCT_TITLE, mockProduct))
                 .getMessage(),
             is(equalTo("Description cannot be found")));
       }
@@ -284,7 +310,8 @@ public class ProductParserTest {
       void getKCals() {
         String testKcalsText = String.format("%dkcal", TEST_PRODUCT_KCALS);
         setUp(testKcalsText, NUTRITION_HEADING, NUTRITION_TABLE);
-        Optional<Integer> kcals = productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
+        Optional<Integer> kcals =
+            productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
         assertTrue(kcals.isPresent());
         assertThat(kcals.get(), is(equalTo(TEST_PRODUCT_KCALS)));
         verify(mockProduct, times(1)).select(".mainProductInfo #information.section h3 + *");
@@ -309,16 +336,39 @@ public class ProductParserTest {
       @DisplayName("should return an empty optional if the kcals per 100g is missing")
       void getKCalsReturnsEmptyWhenNotFound() {
         setUp("", "<h3>Not Nutrition</h3>", "<div/>");
-        Optional<Integer> kcals = productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
+        Optional<Integer> kcals =
+            productParser.getKCals(testProductUrl, TEST_PRODUCT_TITLE, mockProduct);
         assertFalse(kcals.isPresent());
       }
     }
   }
 
-  @Test
-  @DisplayName("should return the page of products at the given url")
-  void getDocument() throws IOException {
-    Document doc = productParser.getDocument(testProductUrl);
-    assertThat(doc, is(notNullValue()));
+  @Nested
+  @DisplayName("getDocument")
+  public class GetDocumentTests {
+
+    @Test
+    @DisplayName("should return the page of products at the given url")
+    void getDocument() throws UnableToGetConnectionException, IOException {
+      Connection mockConnection = mock(Connection.class);
+      doReturn(getTestElement("<div>a page of products</div>")).when(mockConnection).get();
+      doReturn(mockConnection).when(productParser).getConnection(any());
+      Document doc = productParser.getDocument(testProductUrl);
+      assertThat(doc, is(notNullValue()));
+      assertThat(doc.text(), is(equalTo("a page of products")));
+      verify(productParser, times(1)).getConnection(testProductUrl);
+    }
+
+    @Test
+    @DisplayName("should throw an exception if it cannot get a connection to the given url")
+    void getDocumentThrowsIfCannotGetConnection() throws IOException {
+      doThrow(new IOException("connection error")).when(productParser).getConnection(any());
+      assertThat(
+          assertThrows(
+                  UnableToGetConnectionException.class,
+                  () -> productParser.getDocument(testProductUrl))
+              .getMessage(),
+          is(equalTo("connection error")));
+    }
   }
 }

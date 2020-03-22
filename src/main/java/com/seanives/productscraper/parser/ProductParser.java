@@ -1,9 +1,12 @@
 package com.seanives.productscraper.parser;
 
 import com.seanives.productscraper.Presenter;
+import com.seanives.productscraper.errors.parser.UnableToGetConnectionException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductPageException;
 import com.seanives.productscraper.model.ProductModel;
+import org.jsoup.Connection;
+import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
@@ -25,27 +28,31 @@ public class ProductParser {
     this.productsPageUrl = productsPageUrl;
   }
 
-  public void getProducts(final Presenter presenter) throws IOException {
+  public void getProducts(final Presenter presenter) throws UnableToGetConnectionException {
     try {
       Document productsPage = getDocument(productsPageUrl);
       List<ProductModel> productsList = parseProductsPage(productsPage);
 
       presenter.parsingCompletedSuccesfully(productsList);
 
+    } catch (UnableToGetConnectionException e) {
+      presenter.unableToGetConnectionFailure(
+          String.format(
+              "Unable to get the connection for the url '%s': %s", e.getUrl(), e.getMessage()));
     } catch (UnableToParseProductPageException e) {
       presenter.unableToParseProductPageFailure(
-              String.format(
-                      "Unable to parse the details on page '%s': %s", e.getUrl(), e.getMessage()));
+          String.format(
+              "Unable to parse the details on page '%s': %s", e.getUrl(), e.getMessage()));
     } catch (UnableToParseProductDetailsException e) {
       presenter.unableToParseProductDetailsFailure(
-              String.format(
-                      "Unable to parse the details for product '%s' on page '%s': %s",
-                      e.getProductTitle(), e.getUrl(), e.getMessage()));
+          String.format(
+              "Unable to parse the details for product '%s' on page '%s': %s",
+              e.getProductTitle(), e.getUrl(), e.getMessage()));
     }
   }
 
   List<ProductModel> parseProductsPage(final Element productsPage)
-      throws IOException, UnableToParseProductPageException {
+      throws UnableToParseProductPageException, UnableToGetConnectionException {
     Elements products = productsPage.select(".productLister .product");
     List<ProductModel> productList = new ArrayList<>();
     for (Element product : products) {
@@ -55,7 +62,7 @@ public class ProductParser {
   }
 
   ProductModel parseProduct(final Element product)
-      throws IOException, UnableToParseProductPageException {
+      throws UnableToParseProductPageException, UnableToGetConnectionException {
     Element productNameAndPromos =
         Optional.ofNullable(product.select(".productInfo .productNameAndPromotions a").first())
             .orElseThrow(
@@ -84,7 +91,8 @@ public class ProductParser {
     return productNameAndPromos.text();
   }
 
-  String getDescription(final String pageUrl, final String productTitle, final Element productDetails) {
+  String getDescription(
+      final String pageUrl, final String productTitle, final Element productDetails) {
     return parseChildElements(
             productDetails,
             ".mainProductInfo #information.section h3 + *",
@@ -95,17 +103,22 @@ public class ProductParser {
                     .findFirst()
                     .orElseThrow(
                         () ->
-                            new UnableToParseProductDetailsException("Description has no content", pageUrl, productTitle)),
+                            new UnableToParseProductDetailsException(
+                                "Description has no content", pageUrl, productTitle)),
             productTextElement ->
                 Optional.ofNullable(productTextElement.previousElementSibling())
                     .map(prev -> prev.text().equals("Description"))
                     .orElse(false))
         .stream()
         .findFirst()
-        .orElseThrow(() -> new UnableToParseProductDetailsException("Description cannot be found", pageUrl, productTitle));
+        .orElseThrow(
+            () ->
+                new UnableToParseProductDetailsException(
+                    "Description cannot be found", pageUrl, productTitle));
   }
 
-  Optional<Integer> getKCals(final String pageUrl, final String productTitle, final Element productDetails) {
+  Optional<Integer> getKCals(
+      final String pageUrl, final String productTitle, final Element productDetails) {
     return parseChildElements(
             productDetails,
             ".mainProductInfo #information.section h3 + *",
@@ -119,7 +132,8 @@ public class ProductParser {
                             Integer.parseUnsignedInt(kcalText.replaceAll("([0-9]+).*", "$1")))
                     .findFirst();
               } catch (NumberFormatException e) {
-                throw new UnableToParseProductDetailsException("Error parsing kcals per 100g", pageUrl, productTitle);
+                throw new UnableToParseProductDetailsException(
+                    "Error parsing kcals per 100g", pageUrl, productTitle);
               }
             },
             productTextElement ->
@@ -131,7 +145,8 @@ public class ProductParser {
         .orElse(Optional.empty());
   }
 
-  double getPricePerUnit(final String pageUrl, final String productTitle, final Element pricingDetails) {
+  double getPricePerUnit(
+      final String pageUrl, final String productTitle, final Element pricingDetails) {
     try {
       return pricingDetails.getAllElements().stream()
           .map(Element::text)
@@ -140,7 +155,8 @@ public class ProductParser {
           .map(Double::parseDouble)
           .get();
     } catch (NumberFormatException e) {
-      throw new UnableToParseProductDetailsException("Error parsing price per unit", pageUrl, productTitle);
+      throw new UnableToParseProductDetailsException(
+          "Error parsing price per unit", pageUrl, productTitle);
     }
   }
 
@@ -153,7 +169,15 @@ public class ProductParser {
     return elements.stream().filter(elementFilter).map(elementMapper).collect(Collectors.toList());
   }
 
-  public Document getDocument(final String pageUrl) throws IOException {
-    return new Document(pageUrl);
+  Document getDocument(final String pageUrl) throws UnableToGetConnectionException {
+    try {
+      return getConnection(pageUrl).get();
+    } catch (IOException e) {
+      throw new UnableToGetConnectionException(e, pageUrl);
+    }
+  }
+
+  Connection getConnection(final String pageUrl) throws IOException {
+    return Jsoup.connect(pageUrl);
   }
 }
