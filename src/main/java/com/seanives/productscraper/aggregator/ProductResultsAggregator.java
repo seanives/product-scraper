@@ -17,6 +17,7 @@ public class ProductResultsAggregator {
   }
 
   public ProductTotalModel getTotal() {
-    return new ProductTotalModel(0.0d, 0.0d);
+    double gross = aggregation.calculateGross(products);
+    return new ProductTotalModel(gross, aggregation.calculateVat(gross));
   }
 }

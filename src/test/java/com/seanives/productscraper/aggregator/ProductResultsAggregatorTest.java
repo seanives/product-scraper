@@ -7,7 +7,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,14 +22,13 @@ public class ProductResultsAggregatorTest {
   @Mock ProductModel product;
   @Mock Aggregation<ProductModel> productAggregation;
 
-  List<ProductModel> productList =  Arrays.asList(product);
-
-  @Spy
-  ProductResultsAggregator aggregator =
-      new ProductResultsAggregator(productList, productAggregation);
+  final List<ProductModel> productList;
+  final ProductResultsAggregator aggregator;
 
   public ProductResultsAggregatorTest() {
     MockitoAnnotations.initMocks(this);
+    productList = Arrays.asList(product);
+    aggregator = new ProductResultsAggregator(productList, productAggregation);
   }
 
   @Test
