@@ -67,6 +67,18 @@ public class ProductParserTest {
     }
 
     @Test
+    @DisplayName("should invoke the presenter if unable to get a connection to the products page")
+    void getProductsCallsPresenterIfUnableToGetConnection() throws UnableToGetConnectionException {
+      doReturn(mockDocument).when(productParser).getDocument(anyString());
+      doThrow(new UnableToGetConnectionException(new IOException("unable to connect"), "y"))
+              .when(productParser)
+              .getDocument(testProductUrl);
+      productParser.getProducts(mockPresenter);
+      verify(mockPresenter, times(1))
+              .unableToGetConnectionFailure("Unable to get the connection for the url 'y': unable to connect");
+    }
+
+    @Test
     @DisplayName("should invoke the presenter if unable to parse the products page")
     void getProductsCallsPresenterIfUnableToParseProducts() throws UnableToGetConnectionException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());

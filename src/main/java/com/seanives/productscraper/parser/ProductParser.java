@@ -28,7 +28,7 @@ public class ProductParser {
     this.productsPageUrl = productsPageUrl;
   }
 
-  public void getProducts(final Presenter presenter) throws UnableToGetConnectionException {
+  public void getProducts(final Presenter presenter) {
     try {
       Document productsPage = getDocument(productsPageUrl);
       List<ProductModel> productsList = parseProductsPage(productsPage);
