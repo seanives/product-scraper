@@ -1,9 +1,11 @@
 package com.seanives.productscraper.model;
 
+import com.seanives.productscraper.aggregator.aggregation.Aggregatable;
+
 import java.util.Objects;
 import java.util.Optional;
 
-public class ProductModel {
+public class ProductModel implements Aggregatable {
   private final String title;
   private final Optional<Integer> kcalPer100g;
   private final double unitPrice;
