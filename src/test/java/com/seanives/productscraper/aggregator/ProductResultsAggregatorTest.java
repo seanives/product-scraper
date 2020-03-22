@@ -28,7 +28,7 @@ public class ProductResultsAggregatorTest {
   public ProductResultsAggregatorTest() {
     MockitoAnnotations.initMocks(this);
     productList = Arrays.asList(product);
-    aggregator = new ProductResultsAggregator(productList, productAggregation);
+    aggregator = new ProductResultsAggregator(productAggregation);
   }
 
   @Test
@@ -36,7 +36,7 @@ public class ProductResultsAggregatorTest {
   void generateTotal() {
     doReturn(20.20d).when(productAggregation).calculateGross(any());
     doReturn(4.04d).when(productAggregation).calculateVat(anyDouble());
-    ProductTotalModel total = aggregator.getTotal();
+    ProductTotalModel total = aggregator.getTotal(productList);
     assertThat(total, is(notNullValue()));
     assertThat(total.getGross(), is(equalTo(20.20d)));
     assertThat(total.getVat(), is(equalTo(4.04d)));

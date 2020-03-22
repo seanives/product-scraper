@@ -1,6 +1,6 @@
 package com.seanives.productscraper.parser;
 
-import com.seanives.productscraper.Presenter;
+import com.seanives.productscraper.presenter.Presenter;
 import com.seanives.productscraper.errors.parser.UnableToGetConnectionException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductPageException;
@@ -43,10 +43,11 @@ public class ProductParserTest {
   @Mock Elements mockProducts;
   @Mock Element mockProduct;
 
-  @Spy ProductParser productParser = new ProductParser(mockPresenter, testProductUrl);
+  ProductParser productParser;
 
   public ProductParserTest() {
     MockitoAnnotations.initMocks(this);
+    productParser = spy(new ProductParser(mockPresenter, testProductUrl));
   }
 
   @Nested
@@ -58,7 +59,7 @@ public class ProductParserTest {
     void getProducts() throws UnableToGetConnectionException {
       doReturn(mockDocument).when(productParser).getDocument(anyString());
       doReturn(Arrays.asList(testProductModel)).when(productParser).parseProductsPage(any());
-      productParser.getProducts(mockPresenter);
+      productParser.parseProducts();
       ArgumentCaptor<List<ProductModel>> productListCaptor = ArgumentCaptor.forClass(List.class);
       verify(mockPresenter, times(1)).parsingCompletedSuccesfully(productListCaptor.capture());
       assertThat(productListCaptor.getValue(), is(notNullValue()));
@@ -73,7 +74,7 @@ public class ProductParserTest {
       doThrow(new UnableToGetConnectionException(new IOException("unable to connect"), "y"))
               .when(productParser)
               .getDocument(testProductUrl);
-      productParser.getProducts(mockPresenter);
+      productParser.parseProducts();
       verify(mockPresenter, times(1))
               .unableToGetConnectionFailure("Unable to get the connection for the url 'y': unable to connect");
     }
@@ -85,7 +86,7 @@ public class ProductParserTest {
       doThrow(new UnableToParseProductPageException("x", "y"))
           .when(productParser)
           .parseProductsPage(any());
-      productParser.getProducts(mockPresenter);
+      productParser.parseProducts();
       verify(mockPresenter, times(1))
           .unableToParseProductPageFailure("Unable to parse the details on page 'y': x");
     }
@@ -98,7 +99,7 @@ public class ProductParserTest {
       doThrow(new UnableToParseProductDetailsException("x", "y", "z"))
           .when(productParser)
           .parseProductsPage(any());
-      productParser.getProducts(mockPresenter);
+      productParser.parseProducts();
       verify(mockPresenter, times(1))
           .unableToParseProductDetailsFailure(
               "Unable to parse the details for product 'z' on page 'y': x");

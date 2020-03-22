@@ -1,6 +1,7 @@
 package com.seanives.productscraper.parser;
 
-import com.seanives.productscraper.Presenter;
+import com.google.inject.Inject;
+import com.seanives.productscraper.presenter.Presenter;
 import com.seanives.productscraper.errors.parser.UnableToGetConnectionException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
 import com.seanives.productscraper.errors.parser.UnableToParseProductPageException;
@@ -23,12 +24,13 @@ public class ProductParser {
   final String productsPageUrl;
   final Presenter presenter;
 
+  @Inject
   public ProductParser(final Presenter presenter, final String productsPageUrl) {
     this.presenter = presenter;
     this.productsPageUrl = productsPageUrl;
   }
 
-  public void getProducts(final Presenter presenter) {
+  public void parseProducts() {
     try {
       Document productsPage = getDocument(productsPageUrl);
       List<ProductModel> productsList = parseProductsPage(productsPage);

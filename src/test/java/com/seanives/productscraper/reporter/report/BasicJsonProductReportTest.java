@@ -1,6 +1,5 @@
 package com.seanives.productscraper.reporter.report;
 
-import com.seanives.productscraper.errors.parser.UnableToParseProductDetailsException;
 import com.seanives.productscraper.model.ProductResultsModel;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -29,14 +28,14 @@ public class BasicJsonProductReportTest {
 
   @BeforeEach
   void beforeEach() {
-    report = new BasicJsonProductReport(productResultsModel, reportRenderer);
+    report = new BasicJsonProductReport(reportRenderer);
   }
 
   @Test
   @DisplayName("should render a valid report")
   void render() {
     doReturn(Collections.emptyMap()).when(reportRenderer).getRendered(any());
-    report.render();
+    report.render(productResultsModel);
     verify(reportRenderer, times(1)).getRendered(productResultsModel);
   }
 
@@ -49,13 +48,13 @@ public class BasicJsonProductReportTest {
     void convertToString() {
       doReturn(Collections.emptyMap()).when(reportRenderer).getRendered(any());
       doReturn("xxx").when(reportRenderer).getJsonString(any());
-      report.render();
+      report.render(productResultsModel);
       String result = report.toString();
       assertThat(result, is(equalTo("xxx")));
     }
 
     @Test
-    @DisplayName("should throw an exception the report has not been rendered")
+    @DisplayName("should throw an exception if the report has not been rendered")
     void convertToStringThrows() {
       assertThat(
           assertThrows(IllegalStateException.class, () -> report.toString()).getMessage(),

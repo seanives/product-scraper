@@ -1,25 +1,24 @@
 package com.seanives.productscraper.reporter.report;
 
+import com.google.inject.Inject;
 import com.seanives.productscraper.model.ProductResultsModel;
 
 import java.util.Map;
 import java.util.Optional;
 
-public class BasicJsonProductReport implements Report {
+public class BasicJsonProductReport implements Report<ProductResultsModel> {
 
-  private final ProductResultsModel productResultsModel;
   private final JsonReportRenderer<ProductResultsModel> jsonReportRenderer;
 
   private Optional<Map<String,Object>> renderedReport = Optional.empty();
 
-  public BasicJsonProductReport(
-          final ProductResultsModel productResultsModel, final JsonReportRenderer<ProductResultsModel> jsonReportRenderer) {
-    this.productResultsModel = productResultsModel;
+  @Inject
+  public BasicJsonProductReport(final JsonReportRenderer<ProductResultsModel> jsonReportRenderer) {
     this.jsonReportRenderer = jsonReportRenderer;
   }
 
   @Override
-  public void render() {
+  public void render(final ProductResultsModel productResultsModel) {
     renderedReport = Optional.of(jsonReportRenderer.getRendered(productResultsModel));
   }
 

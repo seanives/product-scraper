@@ -22,8 +22,8 @@ public class ProductReporterTest {
   @Test
   @DisplayName("should generate a valid report")
   void generateReport() {
-    ProductReporter reporter = new ProductReporter(productResultsModel, report);
-    Report generatedReport = reporter.generateReport();
+    Reporter reporter = new ProductReporter(report);
+    Report generatedReport = reporter.generateReport(productResultsModel);
     assertThat(generatedReport, is(notNullValue()));
   }
 }

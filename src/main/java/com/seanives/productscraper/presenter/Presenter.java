@@ -1,4 +1,4 @@
-package com.seanives.productscraper;
+package com.seanives.productscraper.presenter;
 
 import com.seanives.productscraper.model.ProductModel;
 
@@ -10,5 +10,4 @@ public interface Presenter {
    void unableToParseProductDetailsFailure(String errorMessage);
 
    void parsingCompletedSuccesfully(List<ProductModel> productList);
-
 }

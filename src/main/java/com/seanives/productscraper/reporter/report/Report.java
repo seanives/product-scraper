@@ -1,6 +1,6 @@
 package com.seanives.productscraper.reporter.report;
 
-public interface Report {
-    void render();
+public interface Report<R> {
+    void render(final R resultsModel);
     String toString();
 }
