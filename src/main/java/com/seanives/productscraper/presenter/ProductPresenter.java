@@ -23,12 +23,12 @@ public class ProductPresenter implements Presenter {
   }
 
   @Override
-  public void unableToGetConnectionFailure(String errorMessage) {
+  public void unableToGetConnectionFailure(final String errorMessage) {
     reportErrorAndStop(errorMessage);
   }
 
   @Override
-  public void unableToParseProductPageFailure(String errorMessage) {
+  public void unableToParseProductPageFailure(final String errorMessage) {
     reportErrorAndStop(errorMessage);
   }
 

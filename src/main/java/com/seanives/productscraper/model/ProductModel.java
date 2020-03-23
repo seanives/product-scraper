@@ -26,8 +26,8 @@ public class ProductModel implements Aggregatable {
     return title;
   }
 
-  public Optional<Integer> getKcalPer100g() {
-    return kcalPer100g;
+  public Integer getKcalPer100g() {
+    return kcalPer100g.orElse(null);
   }
 
   public double getUnitPrice() {
