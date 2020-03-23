@@ -20,7 +20,7 @@ If not then you can install it via the following [link](https://java.com/en/down
 
 2. This project is built using [Apache Maven](https://maven.apache.org/). To find out if it is already installed, type the following at a command prompt:
 ```bash
-maven -h
+mvn -v
 ```
 If not then you will need to [download](https://maven.apache.org/download.cgi) and [install](https://maven.apache.org/install.html) it.
 
@@ -29,7 +29,7 @@ If not then you will need to [download](https://maven.apache.org/download.cgi) a
 Checkout this repo and install the dependencies via Maven:
 
 ``` bash
-maven clean install 
+mvn clean install 
 ```
 
 This includes compiling the sources, executing the tests and packaging the compiled files into a JAR file.
