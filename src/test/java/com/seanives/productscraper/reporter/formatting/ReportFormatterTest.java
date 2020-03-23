@@ -6,6 +6,7 @@ import org.mockito.MockitoAnnotations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,9 +33,14 @@ public class ReportFormatterTest {
 
   @Test
   public void getFormattedMap() {
+    doReturn("key").when(formatting).mapKey(anyString());
+    doReturn("value").when(formatting).mapValue(anyString());
     Map<String, Object> formattedRendering =
         reportFormatter.getFormatted(testUnformattedRenderingMap);
     assertThat(formattedRendering, is(notNullValue()));
+    assertThat(formattedRendering.size(), is(equalTo(1)));
+    verify(formatting, times(1)).mapKey("key");
+    verify(formatting, times(1)).mapValue("value");
   }
 
   @Test
@@ -42,5 +48,8 @@ public class ReportFormatterTest {
     List formattedRendering =
         reportFormatter.getFormatted(Arrays.asList("value"));
     assertThat(formattedRendering, is(notNullValue()));
+    assertThat(formattedRendering.size(), is(equalTo(1)));
+    verify(formatting, times(0)).mapKey("key");
+    verify(formatting, times(1)).mapValue("value");
   }
 }
