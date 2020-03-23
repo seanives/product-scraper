@@ -12,10 +12,10 @@ public class ReportFormatter<T extends Formatting> {
   }
 
   public Map<String, Object> getFormatted(final Map<String, Object> unformatted) {
-    return null;
+    return unformatted;
   }
 
   public List<Object> getFormatted(final List<Object> unformatted) {
-    return null;
+    return unformatted;
   }
 }
