@@ -21,8 +21,8 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class ProductParser {
-  final String productsPageUrl;
-  final Presenter presenter;
+  private final String productsPageUrl;
+  private final Presenter presenter;
 
   @Inject
   public ProductParser(final Presenter presenter, final String productsPageUrl) {
